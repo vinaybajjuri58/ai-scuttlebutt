@@ -130,7 +130,7 @@ export async function runCompanyResearchSweep(
       ),
       // People index: named people with positions (no emails returned)
       captureToolResult("hunter.domain_search", () =>
-        searchHunterDomain({ domain, limit: 20 }),
+        searchHunterDomain({ domain, limit: 10 }),
       ),
       // Company enrichment: technologies, tech categories, funding, metrics, social
       captureToolResult("hunter.company_enrichment", () =>
