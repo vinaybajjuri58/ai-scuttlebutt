@@ -84,20 +84,20 @@ export async function runCompanyResearchSweep(
     ),
     // Brand search: just the company name to trigger knowledge_graph, answer_box, related_questions
     captureToolResult("serpapi.brand_search", () =>
-      searchSerpApi({ query: options.companyName, num: 10 }),
+      searchSerpApi({ query: options.companyName, num: 20 }),
     ),
     // Funding/founders search
     captureToolResult("serpapi.company_search", () =>
-      searchSerpApi({ query: `${query} startup funding founders`, num: 10 }),
+      searchSerpApi({ query: `${query} startup funding founders`, num: 20 }),
     ),
     captureToolResult("serpapi.news_search", () =>
-      searchSerpApi({ query, engine: "google_news", num: 10 }),
+      searchSerpApi({ query, engine: "google_news", num: 20 }),
     ),
     // LinkedIn company & people search via Google
     captureToolResult("serpapi.linkedin_search", () =>
       searchSerpApi({
         query: `site:linkedin.com/company ${options.companyName} OR site:linkedin.com/in ${options.companyName} founder`,
-        num: 10,
+        num: 20,
       }),
     ),
     captureToolResult("github.search", () =>
@@ -130,7 +130,7 @@ export async function runCompanyResearchSweep(
       ),
       // People index: named people with positions (no emails returned)
       captureToolResult("hunter.domain_search", () =>
-        searchHunterDomain({ domain, limit: 15 }),
+        searchHunterDomain({ domain, limit: 20 }),
       ),
       // Company enrichment: technologies, tech categories, funding, metrics, social
       captureToolResult("hunter.company_enrichment", () =>
