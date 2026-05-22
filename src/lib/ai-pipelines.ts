@@ -49,6 +49,40 @@ export function prepareForLLM(sweepResult: CompanyResearchSweepResult): string {
 // OpenAI structured outputs require ALL properties to be in `required`.
 // Use .nullable() (not .optional()) for fields that may be absent in the data —
 // the field will always be present in the response but its value will be null.
+
+// Step 1 output: one record per atomic fact, never aggregated.
+const atomicFactRegistrySchema = z.object({
+  facts: z.array(
+    z.object({
+      category: z.enum([
+        "location",
+        "contact",
+        "hours",
+        "description",
+        "product",
+        "person",
+        "technology",
+        "social",
+        "rating",
+        "funding",
+        "news",
+        "partnership",
+        "customer",
+        "industry",
+        "other",
+      ]),
+      field: z.string(),
+      value: z.string(),
+      sourcePath: z.string(),
+      evidence: z.string(),
+      confidence: z.number(),
+    }),
+  ),
+})
+
+export type AtomicFact = z.infer<typeof atomicFactRegistrySchema>["facts"][number]
+
+// Step 2 output: structured summary assembled from atomic facts — never from raw data.
 const structuredSummarySchema = z.object({
   company: z.string(),
   oneLineDescription: z.string(),
@@ -56,10 +90,35 @@ const structuredSummarySchema = z.object({
   website: z.string().nullable(),
   founded: z.string().nullable(),
   companySize: z.string().nullable(),
+
+  // Legacy single-value fields kept for display compatibility.
   headquarters: z.string().nullable(),
   fullAddress: z.string().nullable(),
   officeBuilding: z.string().nullable(),
+
+  // All distinct locations with source attribution — never merged.
+  locations: z.array(
+    z.object({
+      type: z.string(),
+      building: z.string().nullable(),
+      fullAddress: z.string().nullable(),
+      city: z.string().nullable(),
+      state: z.string().nullable(),
+      country: z.string().nullable(),
+      source: z.string(),
+    }),
+  ),
+
+  // Legacy hours string (verbatim, all notes preserved) + per-day breakdown.
   operatingHours: z.string().nullable(),
+  operatingHoursStructured: z.array(
+    z.object({
+      day: z.string(),
+      hours: z.string(),
+      note: z.string().nullable(),
+    }),
+  ),
+
   products: z.array(z.string()),
   founders: z.array(z.string()),
   leadership: z.array(
@@ -80,21 +139,47 @@ const structuredSummarySchema = z.object({
   industries: z.array(z.string()),
   technologies: z.array(z.string()),
   partnerships: z.array(z.string()),
+
+  // Social profiles with follower counts preserved.
   socialProfiles: z.array(
     z.object({
       platform: z.string(),
       url: z.string(),
+      followers: z.string().nullable(),
     }),
   ),
+
   recentNews: z.array(z.string()),
   fundingInfo: z.string().nullable(),
+
+  // Legacy ratings string + per-source structured ratings.
   ratings: z.string().nullable(),
+  ratingsStructured: z.array(
+    z.object({
+      source: z.string(),
+      rating: z.number(),
+      reviewCount: z.number().nullable(),
+    }),
+  ),
+
+  // All verbatim description texts from every source — never compressed.
+  descriptions: z.array(
+    z.object({
+      source: z.string(),
+      text: z.string(),
+    }),
+  ),
+
   keyInsights: z.array(z.string()),
   risksOrUnknowns: z.array(z.string()),
+
+  // Evidence with full source provenance and confidence.
   evidence: z.array(
     z.object({
       fact: z.string(),
       sourceSnippet: z.string(),
+      sourcePath: z.string(),
+      confidence: z.number(),
     }),
   ),
 })
@@ -102,6 +187,7 @@ const structuredSummarySchema = z.object({
 export type StructuredSummary = z.infer<typeof structuredSummarySchema>
 
 export type SummaryPipelineResult = {
+  atomicFacts: AtomicFact[]
   structuredSummary: StructuredSummary
   report: string
 }
@@ -110,42 +196,84 @@ export type SummaryPipelineResult = {
 // Summary pipeline
 // ---------------------------------------------------------------------------
 
-const SUMMARY_STEP1_SYSTEM = `You are an expert company research analyst with a mandate of ZERO DATA LOSS.
-You receive raw JSON data collected from multiple APIs about a specific company.
-The schemas are inconsistent and may contain duplicate, conflicting, or noisy information.
+// Step 1: convert raw API data into an Atomic Fact Registry.
+// One record per fact — no aggregation, no summarization, no deduplication.
+const SUMMARY_STEP1_SYSTEM = `You are a data extraction engine. Your sole job is to convert raw JSON company data into an Atomic Fact Registry.
 
-CRITICAL RULES — follow every one:
-1. Extract EVERY piece of factual information present in the data, no matter how small.
-2. NEVER skip or summarise away specific details — capture them verbatim or precisely.
-3. Locations: extract the full street address, city, state, postal code, country, AND any named building (e.g. "Kapil Towers", "Financial District") into the correct fields.
-4. Team members: extract ALL named people with their titles and departments — check serpapi knowledge_graph, hunter domain_search, company_website.team, and any people mentioned in snippets or descriptions.
-5. Technologies: extract ALL technologies mentioned anywhere in the data.
-6. Social profiles: extract ALL social media / LinkedIn / Instagram / Twitter profile URLs.
-7. Founders: extract any names mentioned as founder, co-founder, CEO, or similar.
-8. Operating hours: if hours are present in the data, capture them exactly.
-9. Funding / investors: capture all investor names and any funding amounts or rounds mentioned.
-10. If information conflicts across sources, include both versions with a note.
-11. Only use information present in the supplied data — do not hallucinate.
+RULES — NEVER VIOLATE:
+1. ONE fact per record. Never combine two facts into one object.
+2. Never summarize. Never aggregate. Never paraphrase. Never compress.
+3. Preserve the exact wording, numbers, and casing from the source verbatim.
+4. Extract EVERY piece of information — addresses, hours, descriptions, names, ratings, counts, URLs, notes, everything.
+5. sourcePath: the dot-path to the value in the source JSON (e.g. "serpapi.knowledge_graph.address", "hunter.domain_search.emails[0].value").
+6. evidence: a verbatim quote of the raw value or surrounding context from the source data.
+7. If two sources give conflicting values for the same fact, emit TWO separate records — one per source. Never merge them.
+8. Do not deduplicate. Duplicate facts are better than lost facts.
+9. confidence: 1.0 = explicitly stated; 0.7 = strongly implied; 0.5 = inferred.
 
-Return the structured JSON requested — nothing else.`
+Category guide:
+- location: every address component, building name, city, region, postal code, country — one fact per component.
+- contact: phone numbers, emails, website URLs.
+- hours: every individual day and its hours; include holiday notes as separate facts.
+- description: every text passage describing the company — capture full text verbatim.
+- product: each product or service name.
+- person: each named individual — one fact per person×role combination (name, title, department).
+- technology: each technology, framework, or tool.
+- social: each social profile URL and each follower/connection count as separate facts.
+- rating: each rating score and each review count as separate facts, one per source.
+- funding: each funding round, investor name, and dollar amount as separate facts.
+- news: each news item or recent event.
+- partnership: each partner or collaborator.
+- customer: each named customer or client.
+- industry: each industry classification.
+- other: anything that does not fit the above categories.
 
-const SUMMARY_STEP2_SYSTEM = `You are a senior analyst writing a comprehensive company intelligence brief.
-Convert the structured summary into a clear, professional report with these sections:
-1. Executive Summary
-2. Company Overview (description, business model, industry, website, founded, size)
-3. Location & Contact (full address, building, city, operating hours)
-4. Products & Services
-5. Founders & Leadership (all named executives with titles)
-6. Team Members (all named individuals)
-7. Technologies & Stack
-8. Investors & Funding
-9. Partnerships & Customers
-10. Social Profiles
-11. Recent News & Activity
-12. Key Insights & Risks
+Aim for 100+ facts for a well-documented company. More facts is always better.`
 
-IMPORTANT: Include ALL details from the structured summary. Do not omit or summarise away specifics — a fact mentioned once in the data must appear in the report.
-Use only facts present in the summary. Write in plain prose for the executive summary; use bullets for all other sections.`
+// Step 2: assemble structured summary from atomic facts — never from raw data.
+const SUMMARY_STEP2_SYSTEM = `You are a structured data assembler. You receive an Atomic Fact Registry and must populate the structured summary schema.
+
+RULES — NEVER VIOLATE:
+1. Use ONLY facts from the provided registry. Do not add information not in the registry.
+2. Never compress or summarize values — use exact text from the facts.
+3. locations array: create one entry per distinct location×source combination. Never merge locations from different sources.
+4. operatingHoursStructured: one entry per day. Preserve all holiday variation notes in the note field.
+5. operatingHours (legacy string): reproduce every day and every note verbatim, do not collapse into a range.
+6. descriptions: one entry per source that contains a description text — copy the full text verbatim.
+7. ratingsStructured: one entry per source with exact rating value and review count.
+8. socialProfiles: include follower/connection count in the followers field wherever the registry contains it.
+9. evidence: include sourcePath and confidence from the registry for each fact you reference.
+10. If facts conflict, include both; note the conflict in keyInsights or risksOrUnknowns.`
+
+// Step 3: write the intelligence brief from atomic facts — never from the compressed summary.
+const SUMMARY_STEP3_SYSTEM = `You are a senior analyst writing a comprehensive company intelligence brief.
+You receive an Atomic Fact Registry. Every fact in the registry MUST appear in the report.
+
+RULES:
+- Do not omit any fact from the registry.
+- Do not paraphrase facts — reproduce values exactly.
+- Include source attribution in parentheses after each fact, e.g. (source: serpapi.knowledge_graph).
+- Where facts conflict across sources, present both with attribution.
+
+Write the report with these sections:
+1. Executive Summary (prose — synthesize key identity, do not omit any description text)
+2. Company Descriptions (all verbatim description texts from every source)
+3. Company Overview (business model, industry, website, founded, size)
+4. Locations (ALL locations with source attribution — list every address component)
+5. Operating Hours (ALL days including holiday variations and notes)
+6. Products & Services
+7. Founders & Leadership (all named individuals with exact titles)
+8. Team Members (all named individuals with titles and departments)
+9. Technologies & Stack
+10. Investors & Funding (all investors, rounds, amounts)
+11. Partnerships & Customers
+12. Social Profiles (URLs with follower counts)
+13. Ratings & Reviews (every source with exact score and review count)
+14. Recent News & Activity
+15. Key Insights & Risks
+16. Source Attribution Index
+
+Use plain prose for sections 1–2. Use structured bullets for all other sections.`
 
 export async function runSummaryPipeline(
   sweepResult: CompanyResearchSweepResult,
@@ -153,22 +281,32 @@ export async function runSummaryPipeline(
   const model = getModel()
   const dataStr = prepareForLLM(sweepResult)
 
-  // Step 1 — Structured extraction
-  const { object: structuredSummary } = await generateObject({
+  // Step 1 — Atomic fact extraction (no summarization, one fact per record)
+  const { object: factRegistry } = await generateObject({
     model,
-    schema: structuredSummarySchema,
+    schema: atomicFactRegistrySchema,
     system: SUMMARY_STEP1_SYSTEM,
     prompt: `DATA:\n\n${dataStr}`,
   })
 
-  // Step 2 — Human-readable report
-  const { text: report } = await generateText({
+  const factsStr = JSON.stringify(factRegistry.facts, null, 2)
+
+  // Step 2 — Structured summary assembled from atomic facts
+  const { object: structuredSummary } = await generateObject({
     model,
+    schema: structuredSummarySchema,
     system: SUMMARY_STEP2_SYSTEM,
-    prompt: `STRUCTURED SUMMARY:\n\n${JSON.stringify(structuredSummary, null, 2)}`,
+    prompt: `ATOMIC FACT REGISTRY:\n\n${factsStr}`,
   })
 
-  return { structuredSummary, report }
+  // Step 3 — Human-readable report generated from atomic facts (not from summary)
+  const { text: report } = await generateText({
+    model,
+    system: SUMMARY_STEP3_SYSTEM,
+    prompt: `ATOMIC FACT REGISTRY:\n\n${factsStr}`,
+  })
+
+  return { atomicFacts: factRegistry.facts, structuredSummary, report }
 }
 
 // ---------------------------------------------------------------------------

@@ -141,19 +141,10 @@ function SummaryPanel({ result }: { result: SummaryPipelineResult }) {
               <div className="flex items-start gap-2 text-sm">
                 <MapPin className="size-4 text-primary shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Location</p>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Primary Location</p>
                   {s.officeBuilding && <p className="font-medium">{s.officeBuilding}</p>}
                   {s.fullAddress && <p className="text-foreground/80">{s.fullAddress}</p>}
                   {!s.fullAddress && s.headquarters && <p className="text-foreground/80">{s.headquarters}</p>}
-                </div>
-              </div>
-            )}
-            {s.operatingHours && (
-              <div className="flex items-start gap-2 text-sm">
-                <Clock className="size-4 text-primary shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Hours</p>
-                  <p className="text-foreground/80">{s.operatingHours}</p>
                 </div>
               </div>
             )}
@@ -184,17 +175,90 @@ function SummaryPanel({ result }: { result: SummaryPipelineResult }) {
                 </div>
               </div>
             )}
-            {s.ratings && (
-              <div className="flex items-start gap-2 text-sm">
-                <Shield className="size-4 text-primary shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Ratings</p>
-                  <p className="text-foreground/80">{s.ratings}</p>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
+      )}
+
+      {/* All locations with source attribution */}
+      {s.locations && s.locations.length > 0 && (
+        <Section title="All Locations" icon={MapPin}>
+          <div className="space-y-3">
+            {s.locations.map((loc, i) => (
+              <Card key={i} className="border-border/60">
+                <CardContent className="p-4 space-y-1 text-sm">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="rounded-full bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider">{loc.type}</span>
+                    <span className="text-[10px] text-muted-foreground">source: {loc.source}</span>
+                  </div>
+                  {loc.building && <p className="font-medium">{loc.building}</p>}
+                  {loc.fullAddress && <p className="text-foreground/80">{loc.fullAddress}</p>}
+                  {!loc.fullAddress && (loc.city || loc.state || loc.country) && (
+                    <p className="text-foreground/80">{[loc.city, loc.state, loc.country].filter(Boolean).join(", ")}</p>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* Operating hours — per-day structured view */}
+      {s.operatingHoursStructured && s.operatingHoursStructured.length > 0 && (
+        <Section title="Operating Hours" icon={Clock}>
+          <Card className="border-border/60">
+            <CardContent className="p-4">
+              <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                {s.operatingHoursStructured.map((entry, i) => (
+                  <div key={i} className="flex items-baseline justify-between gap-4 py-1 text-sm border-b border-border/40 last:border-0">
+                    <span className="font-medium capitalize min-w-[6rem]">{entry.day}</span>
+                    <span className="text-foreground/80 text-right">
+                      {entry.hours}
+                      {entry.note && <span className="ml-1 text-[10px] text-amber-400">({entry.note})</span>}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {s.operatingHours && (
+                <p className="mt-3 text-xs text-muted-foreground border-t border-border/40 pt-3">Raw: {s.operatingHours}</p>
+              )}
+            </CardContent>
+          </Card>
+        </Section>
+      )}
+
+      {/* Ratings with per-source attribution */}
+      {s.ratingsStructured && s.ratingsStructured.length > 0 && (
+        <Section title="Ratings & Reviews" icon={Shield}>
+          <div className="flex flex-wrap gap-3">
+            {s.ratingsStructured.map((r, i) => (
+              <Card key={i} className="border-border/60">
+                <CardContent className="p-4 text-center min-w-[8rem]">
+                  <p className="text-2xl font-semibold tabular-nums text-primary">{r.rating}</p>
+                  {r.reviewCount != null && (
+                    <p className="text-xs text-muted-foreground mt-0.5">{r.reviewCount} review{r.reviewCount !== 1 ? "s" : ""}</p>
+                  )}
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground mt-1">{r.source}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* Verbatim descriptions from each source */}
+      {s.descriptions && s.descriptions.length > 0 && (
+        <Section title="Company Descriptions (verbatim)" icon={FileText}>
+          <div className="space-y-3">
+            {s.descriptions.map((d, i) => (
+              <Card key={i} className="border-border/60">
+                <CardContent className="p-4 space-y-2">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">source: {d.source}</p>
+                  <p className="text-sm leading-relaxed text-foreground/90 italic">&ldquo;{d.text}&rdquo;</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </Section>
       )}
 
       {/* Structured facts grid */}
@@ -235,7 +299,7 @@ function SummaryPanel({ result }: { result: SummaryPipelineResult }) {
         </Section>
       </div>
 
-      {/* Social profiles */}
+      {/* Social profiles with follower counts */}
       {s.socialProfiles && s.socialProfiles.length > 0 && (
         <Section title="Social Profiles" icon={Globe}>
           <div className="flex flex-wrap gap-2">
@@ -245,9 +309,12 @@ function SummaryPanel({ result }: { result: SummaryPipelineResult }) {
                 href={p.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-xs font-medium text-primary hover:border-primary/30 hover:bg-primary/5 transition-colors"
+                className="rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-xs font-medium text-primary hover:border-primary/30 hover:bg-primary/5 transition-colors flex items-center gap-1.5"
               >
                 {p.platform}
+                {p.followers && (
+                  <span className="text-muted-foreground">{p.followers}</span>
+                )}
               </a>
             ))}
           </div>
@@ -286,18 +353,41 @@ function SummaryPanel({ result }: { result: SummaryPipelineResult }) {
         </Section>
       )}
 
-      {/* Evidence */}
+      {/* Evidence with source provenance */}
       {s.evidence.length > 0 && (
         <Section title="Evidence" icon={FileText}>
           <div className="space-y-3">
             {s.evidence.map((e, i) => (
               <Card key={i} className="border-border/60 overflow-hidden">
                 <CardContent className="p-4 space-y-2">
-                  <p className="font-medium text-sm">{e.fact}</p>
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="font-medium text-sm">{e.fact}</p>
+                    <span className="shrink-0 rounded-full bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 text-[10px] font-semibold tabular-nums">{Math.round(e.confidence * 100)}%</span>
+                  </div>
                   <Separator />
                   <p className="text-xs text-muted-foreground italic">&ldquo;{e.sourceSnippet}&rdquo;</p>
+                  <p className="text-[10px] text-muted-foreground/60 font-mono">source: {e.sourcePath}</p>
                 </CardContent>
               </Card>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* Atomic fact registry — count + collapsible browser */}
+      {result.atomicFacts && result.atomicFacts.length > 0 && (
+        <Section title={`Atomic Facts (${result.atomicFacts.length} extracted)`} icon={Sparkles}>
+          <div className="space-y-1.5 max-h-96 overflow-y-auto pr-1">
+            {result.atomicFacts.map((f, i) => (
+              <div key={i} className="flex items-start gap-3 rounded-lg border border-border/40 bg-muted/20 px-3 py-2 text-xs">
+                <span className="shrink-0 rounded border border-border/60 bg-muted px-1.5 py-0.5 text-[10px] uppercase font-semibold text-muted-foreground">{f.category}</span>
+                <div className="min-w-0 flex-1">
+                  <span className="font-medium text-foreground/90">{f.field}: </span>
+                  <span className="text-foreground/70">{f.value}</span>
+                  <span className="ml-2 font-mono text-muted-foreground/50">({f.sourcePath})</span>
+                </div>
+                <span className="shrink-0 text-muted-foreground/60 tabular-nums">{Math.round(f.confidence * 100)}%</span>
+              </div>
             ))}
           </div>
         </Section>
