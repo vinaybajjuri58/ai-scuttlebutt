@@ -1073,7 +1073,7 @@ export default function ResearchPage() {
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Company name or URL (e.g. Wealthup or wealthup.me)"
+                placeholder="Company name or URL (e.g. Stripe or stripe.com)"
                 className="h-14 pl-12 text-base rounded-xl border-border/60 bg-card/60 backdrop-blur-sm"
               />
             </div>
@@ -1101,7 +1101,7 @@ export default function ResearchPage() {
               <div>
                 <p className="text-sm font-medium text-foreground">Need a working demo?</p>
                 <p className="text-sm text-muted-foreground">
-                  Load the saved Altir example with raw data, AI summary, and knowledge graph when API keys expire or providers are down.
+                  Load a saved example with raw data, AI summary, and knowledge graph — useful when API keys expire or providers are down.
                 </p>
               </div>
               <Button
@@ -1297,7 +1297,7 @@ export default function ResearchPage() {
                 <Search className="size-10 text-muted-foreground/30" />
                 <div className="text-center">
                   <p className="font-medium text-foreground">Start your research</p>
-                  <p className="text-sm mt-1">Search for a startup or load the saved Altir example.</p>
+                  <p className="text-sm mt-1">Search for a startup or load the example data.</p>
                 </div>
                 <Button
                   type="button"
@@ -1314,7 +1314,7 @@ export default function ResearchPage() {
                   ) : (
                     <>
                       <FileText className="size-4" />
-                      Load Altir Example
+                      Load Example
                     </>
                   )}
                 </Button>
