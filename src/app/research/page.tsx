@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useState } from "react"
+import ReactMarkdown from "react-markdown"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -118,9 +119,33 @@ function SummaryPanel({ result }: { result: SummaryPipelineResult }) {
             <Sparkles className="size-5 text-primary" />
             <h3 className="text-base font-semibold">Intelligence Brief</h3>
           </div>
-          <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+          <ReactMarkdown
+            components={{
+              h1: ({ children }) => <h1 className="text-xl font-bold mt-4 mb-2 text-foreground">{children}</h1>,
+              h2: ({ children }) => <h2 className="text-base font-semibold mt-5 mb-2 text-foreground border-b border-border/40 pb-1">{children}</h2>,
+              h3: ({ children }) => <h3 className="text-sm font-semibold mt-4 mb-1 text-foreground">{children}</h3>,
+              p: ({ children }) => <p className="text-sm leading-relaxed text-foreground/90 mb-3">{children}</p>,
+              ul: ({ children }) => <ul className="space-y-1 mb-3 pl-4">{children}</ul>,
+              ol: ({ children }) => <ol className="space-y-1 mb-3 pl-4 list-decimal">{children}</ol>,
+              li: ({ children }) => <li className="text-sm text-foreground/90 list-disc">{children}</li>,
+              strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+              em: ({ children }) => <em className="italic text-foreground/80">{children}</em>,
+              a: ({ href, children }) => (
+                <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                  {children}
+                </a>
+              ),
+              blockquote: ({ children }) => (
+                <blockquote className="border-l-2 border-primary/40 pl-4 italic text-muted-foreground text-sm my-3">{children}</blockquote>
+              ),
+              code: ({ children }) => (
+                <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono text-foreground/80">{children}</code>
+              ),
+              hr: () => <hr className="border-border/40 my-4" />,
+            }}
+          >
             {result.report}
-          </div>
+          </ReactMarkdown>
         </CardContent>
       </Card>
 
