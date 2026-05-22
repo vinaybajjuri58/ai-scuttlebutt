@@ -3,22 +3,19 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import {
   Search,
   TrendingUp,
   Users,
-  Shield,
-  MessageSquare,
-  Cpu,
   Bell,
   ArrowRight,
   Sparkles,
   BarChart3,
   Network,
   Zap,
+  Database,
 } from "lucide-react"
 
 // ---------------------------------------------------------------------------
@@ -56,40 +53,46 @@ function GlowOrb({ className }: { className?: string }) {
 
 const features = [
   {
-    icon: BarChart3,
-    title: "Financial Intelligence",
+    icon: Sparkles,
+    title: "AI Intelligence Brief",
     description:
-      "Revenue estimates, funding rounds, burn rate analysis, and valuation projections powered by public data and AI modeling.",
+      "Claude-powered structured report covering founders, leadership, investors, products, funding, and key insights — all cited with source evidence and confidence scores.",
+    status: "live" as const,
+  },
+  {
+    icon: Network,
+    title: "Knowledge Graph",
+    description:
+      "Automatically extract entities (companies, people, products, technologies) and their relationships from raw research data into an interactive visual graph.",
+    status: "live" as const,
   },
   {
     icon: Users,
-    title: "Founder Deep-Dive",
+    title: "Team Discovery",
     description:
-      "Track founder backgrounds, past exits, network strength, and social signals. Spot serial entrepreneurs and rising stars.",
+      "Surface team members, roles, and LinkedIn profiles via Hunter.io people index and direct company website scraping.",
+    status: "live" as const,
   },
   {
-    icon: Shield,
-    title: "Market & MOAT Analysis",
+    icon: Database,
+    title: "Multi-Source Sweep",
     description:
-      "Competitive landscape mapping, TAM estimates, moat scoring, and market trend analysis with actionable intelligence.",
-  },
-  {
-    icon: MessageSquare,
-    title: "Customer Sentiment",
-    description:
-      "Aggregate reviews, social sentiment, churn signals, and NPS estimates from thousands of public sources.",
-  },
-  {
-    icon: Cpu,
-    title: "Product Intelligence",
-    description:
-      "Feature teardowns, tech stack detection, product roadmap signals, and pricing analysis from public artifacts.",
+      "10+ public data sources queried in parallel — GitHub, App Store, ProductHunt, Google Patents, Wayback Machine, news APIs, SerpAPI, and more.",
+    status: "live" as const,
   },
   {
     icon: Bell,
     title: "Real-Time Alerts",
     description:
       "Get notified on funding announcements, leadership changes, product launches, and market shifts as they happen.",
+    status: "coming" as const,
+  },
+  {
+    icon: BarChart3,
+    title: "MOAT & Sentiment Analysis",
+    description:
+      "Competitive moat scoring, customer sentiment aggregation, and market positioning analysis powered by AI.",
+    status: "coming" as const,
   },
 ]
 
@@ -148,6 +151,7 @@ function DemoPreview() {
             <div className="flex gap-2">
               <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">AI Summary</Badge>
               <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">Knowledge Graph</Badge>
+              <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">Team Discovery</Badge>
             </div>
           </div>
         </CardContent>
@@ -215,9 +219,9 @@ export default function Home() {
           </h1>
 
           <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-xl mx-auto">
-            AI-powered startup intelligence. Drop in a company name, get a full
-            research report — financials, product intel, customer sentiment,
-            MOAT analysis, and founder deep-dive.
+            AI-powered startup intelligence. Drop in a company name or URL and get
+            a full research report — AI summary, knowledge graph, team directory,
+            and raw data from 10+ public sources.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
@@ -236,9 +240,9 @@ export default function Home() {
           {/* Stats */}
           <div className="flex items-center justify-center gap-6 md:gap-10 pt-8">
             {[
-              { value: "2.4K+", label: "Companies tracked" },
-              { value: "850+", label: "Research reports" },
-              { value: "12K+", label: "Data points analyzed" },
+              { value: "10+", label: "Data sources" },
+              { value: "3", label: "AI pipelines" },
+              { value: "100%", label: "Public data" },
             ].map((stat, i) => (
               <div key={stat.label} className="flex items-center gap-6 md:gap-10">
                 {i > 0 && <Separator orientation="vertical" className="h-10 hidden sm:block" />}
@@ -275,19 +279,19 @@ export default function Home() {
               {
                 step: "01",
                 title: "Search",
-                description: "Enter any company name. We scan hundreds of public data sources instantly.",
+                description: "Enter any company name or URL. We run 10+ public sources in parallel — GitHub, App Store, ProductHunt, news APIs, and more.",
                 icon: Search,
               },
               {
                 step: "02",
                 title: "Analyze",
-                description: "Our AI pipelines extract structured data, relationships, and key insights.",
+                description: "Claude processes all raw data to extract structured facts, team members, funding info, and key insights — with source evidence.",
                 icon: TrendingUp,
               },
               {
                 step: "03",
                 title: "Discover",
-                description: "Explore interactive summaries, knowledge graphs, and evidence-backed reports.",
+                description: "Explore the AI intelligence brief, interactive knowledge graph, and team directory. All grounded in real, cited public data.",
                 icon: Network,
               },
             ].map((item) => (
@@ -314,12 +318,11 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-medium mb-4 tracking-tight">
-              Everything you need to{" "}
-              <span className="text-primary">research smarter</span>
+              Built today,{" "}
+              <span className="text-primary">expanding fast</span>
             </h2>
             <p className="text-muted-foreground max-w-lg mx-auto text-lg">
-              From financials to founder backgrounds — get the full picture on any
-              startup before you invest, partner, or compete.
+              Four core capabilities are live now. More intelligence layers are actively being built.
             </p>
           </div>
 
@@ -330,8 +333,15 @@ export default function Home() {
                 className="group relative overflow-hidden border-border/60 bg-card/60 backdrop-blur-sm transition-all hover:border-primary/30 hover:bg-card/80"
               >
                 <CardContent className="p-6 space-y-4">
-                  <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 transition-colors group-hover:bg-primary/20">
-                    <feature.icon className="size-5 text-primary" />
+                  <div className="flex items-center justify-between">
+                    <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 transition-colors group-hover:bg-primary/20">
+                      <feature.icon className="size-5 text-primary" />
+                    </div>
+                    {feature.status === "live" ? (
+                      <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-[10px]">Live</Badge>
+                    ) : (
+                      <Badge variant="secondary" className="bg-muted text-muted-foreground border-border/60 text-[10px]">Coming Soon</Badge>
+                    )}
                   </div>
                   <h3 className="font-semibold text-lg">{feature.title}</h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">
@@ -356,24 +366,22 @@ export default function Home() {
                 </div>
               </div>
               <h2 className="text-3xl md:text-4xl font-medium tracking-tight">
-                Ready to stop guessing?
+                Try it right now
               </h2>
               <p className="text-muted-foreground max-w-md mx-auto text-lg">
-                Join thousands of investors, founders, and analysts who use AI
-                Scuttlebutt to make smarter decisions.
+                Drop in any company name or URL and get a full AI-powered research
+                report in under a minute — no signup required.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-                <Input
-                  placeholder="Enter your email..."
-                  className="h-12 text-base max-w-xs w-full rounded-full px-5"
-                />
-                <Button size="lg" className="h-12 px-8 rounded-full gap-2">
-                  Start Free Trial
-                  <ArrowRight className="size-4" />
-                </Button>
+                <Link href="/research">
+                  <Button size="lg" className="h-12 px-8 rounded-full gap-2">
+                    <Sparkles className="size-4" />
+                    Start Researching
+                  </Button>
+                </Link>
               </div>
               <p className="text-xs text-muted-foreground">
-                No credit card required. 7-day free trial.
+                Free to use during early access. Powered by Claude + 10+ public data sources.
               </p>
             </div>
           </Card>
