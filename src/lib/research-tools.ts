@@ -84,29 +84,29 @@ export async function runCompanyResearchSweep(
     ),
     // Brand search: just the company name to trigger knowledge_graph, answer_box, related_questions
     captureToolResult("serpapi.brand_search", () =>
-      searchSerpApi({ query: options.companyName, num: 5 }),
+      searchSerpApi({ query: options.companyName, num: 10 }),
     ),
     // Funding/founders search
     captureToolResult("serpapi.company_search", () =>
-      searchSerpApi({ query: `${query} startup funding founders`, num: 5 }),
+      searchSerpApi({ query: `${query} startup funding founders`, num: 10 }),
     ),
     captureToolResult("serpapi.news_search", () =>
-      searchSerpApi({ query, engine: "google_news", num: 5 }),
+      searchSerpApi({ query, engine: "google_news", num: 10 }),
     ),
     // LinkedIn company & people search via Google
     captureToolResult("serpapi.linkedin_search", () =>
       searchSerpApi({
         query: `site:linkedin.com/company ${options.companyName} OR site:linkedin.com/in ${options.companyName} founder`,
-        num: 5,
+        num: 10,
       }),
     ),
     captureToolResult("github.search", () =>
-      searchGitHub({ query: `${options.companyName} in:name`, perPage: 5 }),
+      searchGitHub({ query: `${options.companyName} in:name`, perPage: 10 }),
     ),
     captureToolResult("app_store.search", () =>
       searchAppStoreApps({
         term: options.appSearchTerm ?? options.companyName,
-        limit: 5,
+        limit: 10,
       }),
     ),
     captureToolResult("google_patents.search_url", () =>
@@ -130,7 +130,7 @@ export async function runCompanyResearchSweep(
       ),
       // People index: named people with positions (no emails returned)
       captureToolResult("hunter.domain_search", () =>
-        searchHunterDomain({ domain, limit: 10 }),
+        searchHunterDomain({ domain, limit: 15 }),
       ),
       // Company enrichment: technologies, tech categories, funding, metrics, social
       captureToolResult("hunter.company_enrichment", () =>
@@ -148,7 +148,7 @@ export async function runCompanyResearchSweep(
       captureToolResult("github.org_profile", () =>
         getGitHubOrgProfile(options.githubOrg as string, {
           includeRepositories: true,
-          repositoryLimit: 5,
+          repositoryLimit: 10,
         }),
       ),
     )
